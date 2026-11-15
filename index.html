@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tutorial · Seguridad web OWASP</title>
+<style>
+  :root{
+    --bg:#ffffff; --fg:#1c2128; --muted:#57606a; --line:#d8dee4;
+    --card:#f6f8fa; --accent:#0969da; --accent-bg:#ddf4ff;
+    --bad:#cf222e; --bad-bg:#ffebe9; --good:#1a7f37; --good-bg:#dafbe1;
+    --warn:#9a6700; --warn-bg:#fff8c5;
+    --code-bg:#1c2128; --code-fg:#e6edf3; --hl:#fff3b0; --hl-border:#e6c700;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Consolas,"Liberation Mono",Menlo,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --sidebar:280px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --line:#30363d;
+      --card:#161b22; --accent:#4493f8; --accent-bg:#121d2f;
+      --bad:#f85149; --bad-bg:#2a1413; --good:#3fb950; --good-bg:#12261a;
+      --warn:#d29922; --warn-bg:#272115;
+      --code-bg:#010409; --code-fg:#e6edf3; --hl:#5c4d00; --hl-border:#9e8400;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --line:#30363d;
+    --card:#161b22; --accent:#4493f8; --accent-bg:#121d2f;
+    --bad:#f85149; --bad-bg:#2a1413; --good:#3fb950; --good-bg:#12261a;
+    --warn:#d29922; --warn-bg:#272115;
+    --code-bg:#010409; --code-fg:#e6edf3; --hl:#5c4d00; --hl-border:#9e8400;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);line-height:1.65;}
+
+  /* Top bar */
+  .topbar{position:sticky;top:0;z-index:40;background:var(--bg);border-bottom:1px solid var(--line);
+          display:flex;align-items:center;gap:12px;padding:10px 16px;flex-wrap:wrap;}
+  .topbar .brand{font-weight:800;font-size:15px;margin-right:auto;}
+  .topbar .brand small{display:block;font-weight:500;color:var(--muted);font-size:12px;}
+  .btn{font-family:inherit;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--card);
+       color:var(--fg);padding:7px 12px;border-radius:8px;cursor:pointer;}
+  .btn:hover{border-color:var(--accent);color:var(--accent);}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .btn.primary:hover{opacity:.9;color:#fff;}
+  .btn .count{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:10px;
+              background:var(--bad);color:#fff;font-size:11px;text-align:center;}
+
+  /* Layout */
+  .layout{display:grid;grid-template-columns:var(--sidebar) 1fr;max-width:1180px;margin:0 auto;}
+  nav.toc{position:sticky;top:53px;align-self:start;height:calc(100vh - 53px);overflow-y:auto;
+          padding:20px 10px 40px 20px;border-right:1px solid var(--line);font-size:13.5px;}
+  nav.toc .toc-h{font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px;}
+  nav.toc a{display:block;color:var(--fg);text-decoration:none;padding:4px 8px;border-radius:6px;}
+  nav.toc a:hover{background:var(--card);color:var(--accent);}
+  nav.toc a.active{background:var(--accent-bg);color:var(--accent);font-weight:700;}
+
+  main{min-width:0;padding:28px 28px 80px;}
+  .intro-hero{border-bottom:3px solid var(--accent);padding-bottom:16px;margin-bottom:8px;}
+  .tag{display:inline-block;background:var(--accent-bg);color:var(--accent);font-weight:700;
+       font-size:12px;letter-spacing:.04em;padding:4px 10px;border-radius:20px;text-transform:uppercase;}
+  h1{font-size:30px;margin:12px 0 6px;line-height:1.2;}
+  h2{font-size:23px;margin:44px 0 12px;padding-top:12px;border-top:1px solid var(--line);scroll-margin-top:64px;}
+  h2 .chip{display:inline-block;background:var(--accent);color:#fff;font-size:12px;font-weight:700;
+           padding:2px 9px;border-radius:20px;vertical-align:middle;margin-right:8px;}
+  h3{font-size:17px;margin:24px 0 8px;scroll-margin-top:64px;}
+  h4{font-size:14px;margin:18px 0 6px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);}
+  p{margin:10px 0;}
+  code{font-family:var(--mono);background:var(--card);padding:1px 6px;border-radius:5px;font-size:.88em;}
+  pre{background:var(--code-bg);color:var(--code-fg);font-family:var(--mono);font-size:13px;
+      line-height:1.55;padding:14px 16px;border-radius:10px;overflow-x:auto;margin:12px 0;}
+  pre code{background:none;padding:0;color:inherit;font-size:inherit;}
+  pre.before{border-left:5px solid var(--bad);}
+  pre.after{border-left:5px solid var(--good);}
+  .lbl{font-weight:700;font-size:11px;letter-spacing:.03em;text-transform:uppercase;margin:14px 0 2px;}
+  .lbl.bad{color:var(--bad);} .lbl.good{color:var(--good);}
+  .note{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 15px;margin:14px 0;}
+  .note.key{background:var(--accent-bg);border-color:var(--accent);}
+  .note.warn{background:var(--warn-bg);border-color:var(--warn);}
+  .note.bad{background:var(--bad-bg);border-color:var(--bad);}
+  .why{background:var(--good-bg);border-left:5px solid var(--good);padding:11px 15px;border-radius:0 8px 8px 0;margin:12px 0;}
+  .case{background:var(--card);border-left:5px solid var(--muted);padding:11px 15px;border-radius:0 8px 8px 0;margin:14px 0;font-size:14px;}
+  .case b{color:var(--fg);}
+  .theory{background:var(--accent-bg);border-left:5px solid var(--accent);padding:11px 15px;border-radius:0 8px 8px 0;margin:14px 0;font-size:14px;}
+  .theory .t{display:block;font-weight:700;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);margin-bottom:4px;}
+  .authors{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 15px;margin:14px 0;font-size:14px;}
+  .authors b{color:var(--fg);}
+  .authors .who{display:inline-block;background:var(--accent-bg);color:var(--accent);font-weight:700;padding:2px 10px;border-radius:20px;margin:3px 5px 3px 0;font-size:13px;}
+  .os{display:inline-block;font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:6px;margin-bottom:4px;}
+  .os.linux{background:var(--warn-bg);color:var(--warn);} .os.win{background:var(--accent-bg);color:var(--accent);}
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;}
+  th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top;}
+  th{background:var(--card);font-weight:700;}
+  .ok{color:var(--good);font-weight:700;} .no{color:var(--bad);font-weight:700;}
+  ol,ul{margin:10px 0;padding-left:22px;} li{margin:5px 0;}
+  .steps{counter-reset:step;list-style:none;padding-left:0;}
+  .steps>li{counter-increment:step;position:relative;padding-left:38px;margin:10px 0;}
+  .steps>li::before{content:counter(step);position:absolute;left:0;top:0;width:26px;height:26px;
+     background:var(--accent);color:#fff;border-radius:50%;text-align:center;line-height:26px;font-size:13px;font-weight:700;}
+  .pill{display:inline-block;font-family:var(--mono);font-size:12px;font-weight:700;padding:2px 8px;border-radius:6px;}
+  .pill.v{background:var(--bad-bg);color:var(--bad);} .pill.s{background:var(--good-bg);color:var(--good);}
+  .try{background:var(--card);border:1px dashed var(--accent);border-radius:10px;padding:12px 15px;margin:14px 0;}
+  .try h4{color:var(--accent);margin-top:0;}
+  mark.hl{background:var(--hl);color:inherit;padding:0 1px;border-radius:2px;cursor:pointer;
+          box-shadow:inset 0 -2px 0 var(--hl-border);}
+  footer{margin-top:50px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:13px;}
+
+  /* Selection toolbar */
+  .seltool{position:absolute;z-index:60;display:none;gap:4px;background:var(--fg);padding:5px;border-radius:9px;
+           box-shadow:0 6px 24px rgba(0,0,0,.3);}
+  .seltool button{font-family:inherit;font-size:12.5px;font-weight:700;border:0;border-radius:6px;padding:6px 11px;cursor:pointer;}
+  .seltool .mk{background:var(--hl);color:#1c2128;}
+  .seltool .dd{background:var(--accent);color:#fff;}
+
+  /* Dudas drawer */
+  .drawer{position:fixed;top:0;right:0;height:100vh;width:380px;max-width:92vw;background:var(--bg);
+          border-left:1px solid var(--line);box-shadow:-8px 0 30px rgba(0,0,0,.15);z-index:70;
+          transform:translateX(100%);transition:transform .22s ease;display:flex;flex-direction:column;}
+  .drawer.open{transform:translateX(0);}
+  .drawer header{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;}
+  .drawer header h3{margin:0;font-size:16px;}
+  .drawer header .x{margin-left:auto;background:none;border:0;font-size:22px;cursor:pointer;color:var(--muted);line-height:1;}
+  .drawer .tools{display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+  .drawer .list{flex:1;overflow-y:auto;padding:12px 16px;}
+  .duda{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px;background:var(--card);}
+  .duda .q{font-size:13px;border-left:3px solid var(--hl-border);padding-left:8px;color:var(--fg);}
+  .duda .sec{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin:6px 0 4px;}
+  .duda textarea{width:100%;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg);
+                 font-family:inherit;font-size:13px;padding:7px;resize:vertical;min-height:46px;margin-top:4px;}
+  .duda .row{display:flex;gap:8px;margin-top:7px;}
+  .duda .row button{font-size:12px;font-weight:600;border:1px solid var(--line);background:var(--bg);color:var(--fg);
+                    border-radius:6px;padding:4px 9px;cursor:pointer;}
+  .duda .row button:hover{border-color:var(--accent);color:var(--accent);}
+  .duda .row .del:hover{border-color:var(--bad);color:var(--bad);}
+  .empty{color:var(--muted);text-align:center;padding:30px 10px;font-size:14px;}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:65;display:none;}
+  .overlay.open{display:block;}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--fg);color:var(--bg);
+         padding:10px 16px;border-radius:9px;font-size:13.5px;z-index:90;opacity:0;transition:opacity .2s;pointer-events:none;}
+  .toast.show{opacity:1;}
+
+  .menu-btn{display:none;}
+  @media (max-width:880px){
+    .layout{grid-template-columns:1fr;}
+    nav.toc{display:none;position:fixed;top:53px;left:0;width:260px;height:calc(100vh - 53px);
+            background:var(--bg);z-index:35;border-right:1px solid var(--line);}
+    nav.toc.open{display:block;}
+    .menu-btn{display:inline-block;}
+    main{padding:20px 16px 70px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="btn menu-btn" id="menuBtn" aria-label="Menú">☰</button>
+  <div class="brand">Tutorial · Seguridad web OWASP<small>VulnShop — vulnerable :3000 · segura :3001 · atacante :4000</small></div>
+  <button class="btn" id="themeBtn" title="Cambiar tema">◐ Tema</button>
+  <button class="btn primary" id="dudasBtn">Mis dudas <span class="count" id="dudasCount">0</span></button>
+</div>
+
+<div class="layout">
+  <nav class="toc" id="toc">
+    <div class="toc-h">Empezar</div>
+    <a href="#intro">Cómo usar esta guía</a>
+    <a href="#preparacion">1 · Preparación del entorno</a>
+    <a href="#fundamentos">2 · Fundamentos OWASP</a>
+    <div class="toc-h">Ataques y defensas</div>
+    <a href="#m1">M1 · Inyección SQL</a>
+    <a href="#m2">M2 · Datos sensibles</a>
+    <a href="#m3">M3 · XSS</a>
+    <a href="#m4">M4 · CORS y cabeceras</a>
+    <a href="#m5">M5 · CSRF</a>
+    <a href="#m6">M6 · Fuerza bruta</a>
+    <a href="#m7">M7 · IDOR (extra)</a>
+    <div class="toc-h">Cierre</div>
+    <a href="#defensa">3 · Defensa en profundidad</a>
+    <a href="#ctf">Reto CTF</a>
+    <a href="#juiceshop">Practicá más · OWASP Juice Shop</a>
+    <a href="#resumen">En resumen</a>
+  </nav>
+
+  <main id="content">
+
+    <section class="intro-hero">
+      <span class="tag">OWASP Top 10:2025 · Tutorial práctico</span>
+      <h1>Seguridad web: ataca y defiende la tienda VulnShop</h1>
+      <p>Una guía para aprender, módulo por módulo, cómo funcionan los ataques web más comunes y cómo se defienden — probándolos vos mismo en dos versiones de la misma tienda: la <span class="pill v">vulnerable :3000</span> y la <span class="pill s">segura :3001</span>, con un <b>sitio atacante</b> en <code>127.0.0.1:4000</code>.</p>
+      <div class="authors">
+        <b>Taller de seguridad web — impartido por:</b><br>
+        <span class="who">José Andrés Ramírez J.</span>
+        <span class="who">Eilyn Rivera</span>
+        <span class="who">Eduardo Solís</span>
+      </div>
+    </section>
+
+    <h2 id="intro">Cómo usar esta guía</h2>
+    <p>Esta página es tu material de estudio y tu laboratorio a la vez. Leé cada módulo, abrí las dos tiendas en el navegador y seguí los pasos de los recuadros <b style="color:var(--accent)">Probalo</b>. La idea no es memorizar: es <b>ver el mismo ataque funcionar en <code>:3000</code> y fallar en <code>:3001</code></b>.</p>
+    <div class="note key">
+      <b>Subrayá y anotá tus dudas.</b> Seleccioná cualquier texto de la guía con el mouse y aparecerá un botón:
+      <ul>
+        <li><b>Subrayar</b> — resalta el texto (queda guardado en tu navegador aunque recargues).</li>
+        <li><b>+ Duda</b> — lo resalta y lo agrega al apartado <b>Mis dudas</b>, donde podés escribirle una nota.</li>
+      </ul>
+      Abrí el panel con el botón <b>Mis dudas</b> (arriba a la derecha). Desde ahí podés <b>descargar todas tus dudas en un archivo <code>.md</code></b> para repasarlas o llevárselas al profe.
+    </div>
+    <div class="note warn"><b>Ética primero.</b> Todo esto se practica en un entorno controlado y de prueba. Las mismas técnicas contra sistemas ajenos son delito. Pruebas autorizadas, entornos controlados, uso ético del conocimiento.</div>
+
+    <h2 id="preparacion"><span class="chip">1</span>Preparación del entorno</h2>
+    <p>El proyecto que vas a usar es <b>TallerDSIV</b>, una sola app Spring Boot con tres perfiles. Está en GitHub; cloná el repositorio y entrá a la carpeta:</p>
+    <div class="note key"><b>Repositorio del proyecto:</b> <a href="https://github.com/eilynrivera/TallerDSIV" target="_blank" rel="noopener"><code>github.com/eilynrivera/TallerDSIV</code></a></div>
+    <pre><code>git clone https://github.com/eilynrivera/TallerDSIV.git
+cd TallerDSIV</code></pre>
+    <div class="note warn"><b>Comandos según tu sistema operativo.</b> El proyecto trae el <i>Maven Wrapper</i> en dos versiones. El prefijo delante indica dónde está el ejecutable (la carpeta actual):
+      <ul>
+        <li><span class="os linux">Linux / macOS</span> &nbsp;usá <code>./mvnw</code> (barra normal <code>/</code>).</li>
+        <li><span class="os win">Windows</span> &nbsp;usá <code>.\mvnw.cmd</code> (barra invertida <code>\</code>, y el <code>.cmd</code>). En <code>cmd.exe</code> también funciona <b>sin el prefijo</b>: <code>mvnw.cmd</code>; en PowerShell sí hace falta el <code>.\</code>.</li>
+      </ul>
+      Es el mismo comando; abajo tenés las dos versiones de cada uno. Levantá cada perfil en su propia terminal, desde la carpeta del repo.
+    </div>
+    <div class="lbl">Tienda vulnerable — puerto 3000</div>
+    <span class="os linux">Linux / macOS</span>
+    <pre class="before"><code>./mvnw spring-boot:run "-Dspring-boot.run.profiles=vulnerable"</code></pre>
+    <span class="os win">Windows</span>
+    <pre class="before"><code>.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=vulnerable"</code></pre>
+    <div class="lbl">Tienda segura (patched) — puerto 3001</div>
+    <span class="os linux">Linux / macOS</span>
+    <pre class="after"><code>./mvnw spring-boot:run "-Dspring-boot.run.profiles=patched"</code></pre>
+    <span class="os win">Windows</span>
+    <pre class="after"><code>.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=patched"</code></pre>
+    <div class="lbl">Sitio atacante — puerto 4000</div>
+    <span class="os linux">Linux / macOS</span>
+    <pre><code>./mvnw spring-boot:run "-Dspring-boot.run.profiles=evil"</code></pre>
+    <span class="os win">Windows</span>
+    <pre><code>.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=evil"</code></pre>
+
+    <h4>Los tres actores</h4>
+    <table>
+      <tr><th>URL</th><th>Qué es</th><th>Cookie de sesión</th></tr>
+      <tr><td><code>localhost:3000</code></td><td><span class="pill v">Vulnerable</span> — todo abierto a propósito</td><td><code>sid_vuln</code>, <code>SameSite=None</code>, sin <code>HttpOnly</code></td></tr>
+      <tr><td><code>localhost:3001</code></td><td><span class="pill s">Segura</span> — las defensas aplicadas</td><td><code>sid_safe</code>, <code>SameSite=Lax</code>, <code>HttpOnly</code></td></tr>
+      <tr><td><code>127.0.0.1:4000</code></td><td><b>Atacante</b> — <code>index.html</code> (CORS) y <code>premio.html</code> (CSRF)</td><td>— no tiene sesión propia —</td></tr>
+    </table>
+    <div class="note"><b>Usuarios de prueba (seed):</b> <code>admin / admin123</code> (ADMIN), <code>maria / sunshine</code> (USER), <code>juan / qwerty2024</code> (USER). Los datos viven en memoria (H2): si algo queda raro, reiniciá el perfil y se restaura.</div>
+    <div class="note warn"><b>Importante sobre el origen:</b> el puerto cuenta para el "origen" (CORS), pero no para <code>SameSite</code>. Por eso el atacante usa <code>127.0.0.1:4000</code> y no <code>localhost</code>: así es un sitio verdaderamente ajeno a la tienda.</div>
+
+    <h2 id="fundamentos"><span class="chip">2</span>Fundamentos OWASP</h2>
+    <p><b>OWASP</b> es una organización sin fines de lucro dedicada a la seguridad del software; su lista más conocida es el <b>OWASP Top 10</b>, el ranking de los riesgos web más críticos. En la edición <b>2025</b> la inyección es la categoría <b>A05</b> (bajó del puesto 3 al 5 porque los frameworks modernos ya parametrizan por defecto, no porque los atacantes la abandonaran).</p>
+    <h4>Las dos ideas que lo explican casi todo</h4>
+    <div class="note key"><b>1. Inyección = el dato se vuelve código.</b> La app arma una orden pegando el texto del usuario, y el intérprete (motor SQL, o el navegador) ya no distingue qué parte es dato y qué parte es instrucción. La defensa general siempre es la misma: <b>mantener el dato separado de la instrucción</b>.</div>
+    <div class="note key"><b>2. El navegador confía por origen.</b> Origen = esquema + host + puerto. Por la <i>same-origin policy</i>, un sitio no puede leer las respuestas de otro. Y la <b>cookie de sesión viaja sola</b>: el navegador la adjunta en cada petición al sitio que la puso — es tu identidad. Hay dos formas de abusar de esto: <b>CORS</b> (leer entre orígenes) y <b>CSRF</b> (actuar entre orígenes).</div>
+    <div class="why"><b>Regla mental para todo el taller:</b> CORS = <b>leer</b> · CSRF = <b>actuar</b>. Es la confusión más común; tenela clara antes de M4 y M5.</div>
+
+    <!-- ======================= M1 ======================= -->
+    <h2 id="m1"><span class="chip">M1</span>Inyección SQL — concatenar frente a parametrizar</h2>
+    <p><b>Qué es:</b> la app construye la consulta pegando el texto del usuario dentro del SQL. Una comilla (<code>'</code>) cierra la cadena y lo que sigue se ejecuta como SQL: permite entrar sin contraseña, leer otras tablas y ver errores internos.</p>
+    <div class="theory"><span class="t">Teoría</span>
+      Toda consulta SQL es, para el motor de base de datos, una mezcla de <b>estructura</b> (las palabras clave <code>SELECT</code>, <code>WHERE</code>, <code>AND</code>…) y <b>datos</b> (los valores que comparás). Cuando concatenás texto del usuario, el motor <b>parsea todo junto</b> y no tiene forma de saber que esa parte "debía ser solo un dato": si contiene sintaxis SQL, la ejecuta. Una <b>consulta parametrizada</b> (o <i>prepared statement</i>) resuelve esto enviando primero la plantilla con marcadores (<code>?</code>) para que el motor la compile, y <b>después</b> los valores por un canal separado — el valor nunca puede cambiar la estructura ya compilada. Existen variantes: <b>SQLi clásica</b> (ves el resultado), <b>basada en errores</b>, <b>UNION-based</b> (pegás un segundo <code>SELECT</code>) y <b>ciega</b> (inferís el dato por el comportamiento o el tiempo de respuesta, sin verlo). La defensa es siempre la misma: parametrizar y, como refuerzo, validar tipos y aplicar el <i>mínimo privilegio</i> en la cuenta de base de datos.
+    </div>
+    <h4>Así se ve en código</h4>
+    <div class="lbl bad">Vulnerable — texto pegado en el SQL</div>
+    <pre class="before"><code>String sql = "SELECT * FROM users WHERE username = '" + username
+           + "' AND password = '" + password + "'";</code></pre>
+    <div class="lbl good">Seguro — consulta parametrizada (Spring Data JPA)</div>
+    <pre class="after"><code>Optional&lt;User&gt; findByUsernameAndPassword(String username, String password);</code></pre>
+    <div class="why"><b>Regla de oro:</b> el dato nunca se pega dentro del SQL. Con parámetros, la base recibe el texto como dato, nunca como código: <code>admin' --</code> pasa a ser solo un usuario que no existe.</div>
+
+    <div class="try">
+      <h4>Probalo en el frontend</h4>
+      <p><b>a) Entrar sin contraseña</b> — en la tienda <span class="pill v">:3000</span>, en <b>"Iniciar sesión"</b>:</p>
+      <ol class="steps">
+        <li>Usuario: <code>admin' --</code> &nbsp;·&nbsp; Contraseña: cualquier cosa.</li>
+        <li>Entrás como <b>admin</b> (la respuesta incluso trae la contraseña). El <code>--</code> comenta la comprobación de la contraseña.</li>
+        <li>En <span class="pill s">:3001</span> el mismo intento responde <b>401</b>.</li>
+      </ol>
+      <p><b>b) Hacer visible el error de la base</b> — en <b>"Productos"</b>:</p>
+      <ol class="steps">
+        <li>Buscá una sola comilla: <code>'</code></li>
+        <li>En <span class="pill v">:3000</span> aparece el error SQL de H2 (muestra la consulta y sus columnas). En <span class="pill s">:3001</span>: lista vacía, sin error.</li>
+      </ol>
+      <p><b>c) Leer usuarios y contraseñas con <code>UNION</code></b> — en <b>"Productos"</b>:</p>
+      <ol class="steps">
+        <li>Buscá: <code>' UNION SELECT id, username, password, 0 FROM users --</code></li>
+        <li>En <span class="pill v">:3000</span> la lista de productos muestra los usuarios y sus contraseñas (la búsqueda devuelve 4 columnas, por eso el UNION lleva 4). En <span class="pill s">:3001</span>: vacío.</li>
+      </ol>
+    </div>
+    <table>
+      <tr><th>Ataque</th><th>:3000 (vulnerable)</th><th>:3001 (segura)</th></tr>
+      <tr><td><code>admin' --</code> en el login</td><td class="no">200, entra como admin</td><td class="ok">401</td></tr>
+      <tr><td><code>'</code> en la búsqueda</td><td class="no">500 con el error SQL</td><td class="ok">200, <code>[]</code></td></tr>
+      <tr><td><code>' UNION SELECT ... FROM users --</code></td><td class="no">lista usuarios y contraseñas</td><td class="ok">200, <code>[]</code></td></tr>
+    </table>
+    <div class="case"><b>Caso real — TalkTalk (2015):</b> con la herramienta <code>sqlmap</code> el atacante halló páginas heredadas sin parchear vulnerables a SQLi y expuso datos de <b>156 959</b> clientes. Multa récord de £400 000; ya habían tenido dos ataques iguales ese año sin reaccionar.</div>
+
+    <!-- ======================= M2 ======================= -->
+    <h2 id="m2"><span class="chip">M2</span>Datos sensibles y hashing — texto plano frente a BCrypt</h2>
+    <p><b>Qué es:</b> dos fallos juntos. (1) Un login válido en la versión vulnerable responde con la <b>entidad <code>User</code> completa</b>, con la contraseña en claro. (2) La tabla <code>users</code> guarda las contraseñas sin cifrar. Si se filtra la base, las contraseñas quedan legibles.</p>
+    <div class="theory"><span class="t">Teoría</span>
+      Una contraseña nunca debería guardarse de forma <b>reversible</b>. No se cifra (el cifrado se puede descifrar con la clave), se aplica una <b>función de hash de contraseñas</b>: transforma la clave en un valor de longitud fija del que no se puede volver atrás. Pero un hash rápido y "a secas" (como MD5 o SHA-256) es vulnerable a <b>tablas rainbow</b> y a ataques por diccionario a gran velocidad. Por eso se usan hashes <b>lentos y con sal</b> como <b>BCrypt</b>, <b>scrypt</b> o <b>Argon2</b>: la <i>sal</i> (un valor aleatorio único por usuario) hace que dos personas con la misma contraseña tengan hashes distintos y anula las tablas precalculadas; el <i>factor de costo</i> hace el cálculo deliberadamente lento para frenar la fuerza bruta. Aparte del almacenamiento, está la <b>minimización de la exposición</b>: la API solo debe devolver los campos necesarios. Usar un <b>DTO</b> (objeto de transferencia) en lugar de la entidad evita filtrar por accidente campos sensibles como la contraseña o el hash.
+    </div>
+    <div class="lbl bad">Vulnerable</div>
+    <pre class="before"><code>userRepository.save(new User("maria", "sunshine", null, "USER")); // texto plano
+return ResponseEntity.ok(u);  // devuelve la entidad con la contraseña</code></pre>
+    <div class="lbl good">Seguro</div>
+    <pre class="after"><code>userRepository.save(new User("maria", passwordEncoder.encode("sunshine"), null, "USER")); // hash
+// y responde un DTO: new LoginResponse(id, username, role) — sin password</code></pre>
+    <div class="why"><b>Por qué:</b> <code>BCrypt</code> guarda un hash con sal (<code>$2a$...</code>); aunque se filtre la tabla, no se recupera la contraseña. Y al responder con un DTO, la contraseña nunca sale del servidor.</div>
+
+    <div class="try">
+      <h4>Probalo</h4>
+      <ol class="steps">
+        <li>En <span class="pill v">:3000</span> iniciá sesión con <code>maria / sunshine</code> y mirá la respuesta del login / "Ver perfil": incluye el campo <code>password</code>. En <span class="pill s">:3001</span> el login responde un DTO <code>{id, username, role}</code>, sin contraseña.</li>
+        <li>Abrí la <b>consola H2</b>: <code>http://localhost:3000/h2-console</code> → JDBC URL <code>jdbc:h2:mem:tienda</code>, usuario <code>sa</code>, sin contraseña.</li>
+        <li>Ejecutá <code>SELECT * FROM users;</code>. En <span class="pill v">:3000</span> las contraseñas están en claro (<code>admin123</code>, <code>sunshine</code>…). En <span class="pill s">:3001</span> ves hashes <code>$2a$10$...</code>.</li>
+      </ol>
+    </div>
+    <table>
+      <tr><th>Prueba</th><th>:3000</th><th>:3001</th></tr>
+      <tr><td>Login válido (<code>maria/sunshine</code>)</td><td class="no">entidad completa (incluye <code>password</code>)</td><td class="ok">DTO sin <code>password</code></td></tr>
+      <tr><td><code>SELECT * FROM users</code> (H2)</td><td class="no">contraseñas en claro</td><td class="ok">hashes <code>$2a$...</code></td></tr>
+    </table>
+
+    <!-- ======================= M3 ======================= -->
+    <h2 id="m3"><span class="chip">M3</span>XSS almacenado — inyección en el navegador</h2>
+    <p><b>Qué es:</b> XSS es inyección donde el intérprete es el <b>navegador de otra persona</b>. Un comentario con JavaScript se guarda y el frontend lo pinta con <code>innerHTML</code>; el navegador de <b>cada visitante</b> ejecuta ese código (puede leer la cookie de sesión, actuar en tu nombre o cambiar la página). El <b>almacenado</b> es el más grave porque queda guardado y afecta a todos.</p>
+    <div class="theory"><span class="t">Teoría</span>
+      Hay <b>tres tipos de XSS</b>. <b>Almacenado</b> (<i>persistent</i>): el payload se guarda en el servidor y se sirve a todos los visitantes — el de este módulo, el más peligroso. <b>Reflejado</b>: el payload viaja en la petición (típicamente en un parámetro de la URL) y se refleja de inmediato en la respuesta; se explota engañando a la víctima para que abra un enlace. <b>Basado en DOM</b>: el fallo está solo en el JavaScript del cliente, que toma datos de una fuente controlable (<code>location.hash</code>, por ejemplo) y los escribe en el DOM sin sanear. La raíz es siempre la misma: mezclar <b>datos</b> con <b>contexto de ejecución</b>. La defensa correcta es el <b>escape según el contexto de salida</b> (HTML, atributo, JavaScript, URL o CSS tienen reglas distintas); en la práctica, <code>textContent</code> en vez de <code>innerHTML</code>, una librería de sanitización del lado servidor, y una <b>CSP</b> (Content-Security-Policy) que bloquee el script en línea como última red de seguridad.
+    </div>
+    <div class="lbl bad">Vulnerable — pinta con innerHTML y guarda sin filtrar</div>
+    <pre class="before"><code>div.innerHTML = '&lt;span&gt;' + c.author + '&lt;/span&gt;: ' + c.content;</code></pre>
+    <div class="lbl good">Seguro — defensa en profundidad (3 capas, cualquiera frena el ataque)</div>
+    <pre class="after"><code>// 1. Frontend: textContent (el navegador muestra el texto, no lo interpreta)
+// 2. Servidor: OWASP HTML Sanitizer elimina TODAS las etiquetas al guardar
+// 3. Config: CSP "script-src 'self'" + cookie HttpOnly</code></pre>
+
+    <div class="try">
+      <h4>Probalo en el frontend</h4>
+      <ol class="steps">
+        <li>En <span class="pill v">:3000</span>, en <b>"Comentarios"</b>, publicá: <code>&lt;img src=x onerror=alert(document.cookie)&gt;</code></li>
+        <li>Al pintarse el comentario, la imagen falla a cargar y dispara <code>onerror</code>: salta un <code>alert</code> con <code>sid_vuln=...</code> (¡no hace falta la etiqueta <code>&lt;script&gt;</code>!). Y le pasa a <b>cada persona</b> que abra la página.</li>
+        <li>En <span class="pill s">:3001</span> el mismo comentario se ve como <b>texto</b>, sin <code>alert</code>.</li>
+      </ol>
+      <p><b>Extra — la CSP sola basta:</b> arrancá patched con <code>--lab.demo.csp-solo=true</code> (apaga el sanitizer) y abrí <code>http://localhost:3001/csp-demo.html</code> (que pinta con <code>innerHTML</code>). El <code>&lt;img&gt;</code> entra al DOM pero el código no corre: en DevTools → Console verás <i>"Refused to execute inline event handler…"</i>. Si una capa falla, otra contiene el daño.</p>
+    </div>
+    <table>
+      <tr><th>Prueba</th><th>:3000</th><th>:3001</th></tr>
+      <tr><td>Publicar <code>&lt;img onerror=...&gt;</code></td><td class="no"><code>alert</code> con <code>sid_vuln</code></td><td class="ok">se ve el texto, sin <code>alert</code></td></tr>
+      <tr><td>Cabecera <code>Content-Security-Policy</code></td><td class="no">no está</td><td class="ok"><code>script-src 'self'; ...</code></td></tr>
+      <tr><td>Cookie de sesión</td><td class="no"><code>sid_vuln</code> sin <code>HttpOnly</code></td><td class="ok"><code>sid_safe; HttpOnly</code></td></tr>
+    </table>
+    <div class="case"><b>Caso real — MySpace / gusano Samy (2005):</b> un XSS almacenado se propagó a <b>1 millón</b> de perfiles en 20 horas. Era casi inofensivo, pero el mismo mecanismo pudo robar sesiones.</div>
+
+    <!-- ======================= M4 ======================= -->
+    <h2 id="m4"><span class="chip">M4</span>CORS y cabeceras — quién puede leer mis respuestas</h2>
+    <p><b>Qué es:</b> CORS lo aplica el navegador — sin permiso del servidor, el JavaScript de otro sitio no puede <b>leer</b> la respuesta. La versión vulnerable responde reflejando <i>cualquier</i> origen y además permite credenciales: un sitio ajeno puede hacer un <code>fetch</code> <b>con tu cookie</b> y leer tu perfil y comentarios.</p>
+    <div class="theory"><span class="t">Teoría</span>
+      Por defecto rige la <b>same-origin policy</b> (SOP): el JavaScript de un origen no puede <b>leer</b> respuestas de otro origen. <b>CORS</b> (Cross-Origin Resource Sharing) es el mecanismo que permite <i>relajar</i> esa regla de forma controlada: el servidor decide, con cabeceras <code>Access-Control-Allow-Origin</code>, <code>-Methods</code> y <code>-Headers</code>, a qué orígenes les concede leer sus respuestas. Para peticiones "no simples" el navegador manda antes un <b>preflight</b> (una petición <code>OPTIONS</code>) a preguntar si la real está permitida. El error grave es combinar <code>Access-Control-Allow-Origin: *</code> (o reflejar el origen recibido) con <code>Access-Control-Allow-Credentials: true</code>: eso deja que cualquier web lea respuestas autenticadas con la cookie de la víctima. Punto clave: CORS <b>no</b> es un control de acceso del servidor, solo gobierna qué puede <b>leer el navegador</b>; la autorización real sigue siendo responsabilidad del backend.
+    </div>
+    <div class="lbl bad">Vulnerable — comodín + credenciales</div>
+    <pre class="before"><code>config.setAllowedOriginPatterns(List.of("*"));
+config.setAllowCredentials(true);
+.headers(headers -> headers.disable());  // ninguna cabecera de seguridad</code></pre>
+    <div class="lbl good">Seguro — lista blanca + cabeceras + CSP</div>
+    <pre class="after"><code>config.setAllowedOrigins(List.of("http://localhost:3001"));
+// + Content-Security-Policy, X-Frame-Options, etc.</code></pre>
+    <div class="why"><b>Regla de oro:</b> nunca comodín (<code>*</code>) junto con credenciales. La defensa es una <b>lista blanca</b> de orígenes (solo el tuyo).</div>
+
+    <div class="try">
+      <h4>Probalo en el frontend</h4>
+      <ol class="steps">
+        <li>Iniciá sesión en la tienda <span class="pill v">:3000</span>.</li>
+        <li>En otra pestaña abrí el sitio atacante <code>http://127.0.0.1:4000</code> y pulsá el botón del ataque.</li>
+        <li>Aparece: <i>"Datos robados por el atacante: {perfil…, comentarios…}"</i>. Abrí <b>DevTools (F12) → Network</b>: la respuesta de <code>/api/profile</code> trae <code>Access-Control-Allow-Origin</code> reflejando al atacante.</li>
+        <li>Repetí contra <span class="pill s">:3001</span>: el mismo <code>fetch</code> falla con un <b>error de CORS</b> rojo en la consola; el atacante no puede leer nada.</li>
+      </ol>
+    </div>
+    <h4>Cabeceras y atributos de cookie que faltaban</h4>
+    <table>
+      <tr><th>Mecanismo</th><th>Para qué sirve</th></tr>
+      <tr><td><code>Content-Security-Policy</code></td><td>limita de dónde se cargan scripts — frena XSS</td></tr>
+      <tr><td><code>X-Frame-Options</code></td><td>evita que te inserten en un iframe (clickjacking)</td></tr>
+      <tr><td><code>X-Content-Type-Options: nosniff</code></td><td>el navegador no adivina el tipo de contenido</td></tr>
+      <tr><td>cookie <code>SameSite</code></td><td><code>None</code>: viaja desde otro sitio (habilita CSRF) · <code>Lax</code>: hoy por defecto, mitiga</td></tr>
+      <tr><td>cookie <code>HttpOnly</code></td><td>el JS no puede leer la cookie — frena el robo de sesión por XSS</td></tr>
+    </table>
+    <div class="case"><b>Casos reales — Capital One (2019):</b> un firewall web mal configurado (misma categoría A02) expuso datos de <b>106 M</b> de personas; multa de US$ 80 M. <b>Exchange de Bitcoin (2016):</b> reflejaba cualquier origen con credenciales; una página ajena leía la API key y podía mover los fondos — parcheado en 20 minutos.</div>
+
+    <!-- ======================= M5 ======================= -->
+    <h2 id="m5"><span class="chip">M5</span>CSRF — no leer, hacer actuar</h2>
+    <p><b>Qué es:</b> al atacante no le hace falta <b>leer</b> nada; le basta que el navegador <b>ejecute una acción</b> con la cookie de la víctima. <code>premio.html</code> tiene un formulario oculto que hace <code>POST /api/account/email</code> y <b>se autoenvía al cargar</b>. La tienda vulnerable solo revisa que haya sesión — no pide token — así que cambia el correo sin consentimiento.</p>
+    <div class="theory"><span class="t">Teoría</span>
+      CSRF abusa de que el navegador <b>adjunta la cookie de sesión automáticamente</b> en cada petición al sitio que la puso, sin importar desde dónde se dispare. Si el servidor confía solo en "hay cookie válida", no puede distinguir una acción que vos quisiste de una que una web ajena provocó. La defensa estándar es el <b>token anti-CSRF</b> (patrón <i>synchronizer token</i>): un valor impredecible, ligado a tu sesión, que el servidor exige en cada acción que cambia estado; el atacante no puede adivinarlo ni leerlo (lo frena la SOP), así que su petición falla. Lo refuerza el atributo de cookie <b>SameSite</b>: <code>Lax</code> (hoy el valor por defecto) impide que la cookie viaje en peticiones <i>cross-site</i> de tipo POST, y <code>Strict</code> es aún más restrictivo. Regla práctica: usá métodos seguros (<code>GET</code> no debe cambiar estado), token CSRF en todo lo que modifica, y <code>SameSite</code> en la cookie.
+    </div>
+    <div class="note warn"><b>Ojo:</b> CORS <b>no</b> detiene esto, porque un formulario HTML no está sujeto a CORS. Por eso CORS (leer) y CSRF (actuar) son problemas distintos.</div>
+    <div class="lbl good">Defensa (versión segura :3001)</div>
+    <pre class="after"><code>// Token CSRF obligatorio en /api/account/** (el front lo manda en X-XSRF-TOKEN)
+// + cookie SameSite=Lax. El POST del atacante, sin token, recibe 403.</code></pre>
+
+    <div class="try">
+      <h4>Probalo en el frontend</h4>
+      <div class="note bad"><b>El ataque NO se escribe a mano: se dispara solo.</b> "Mi cuenta" es solo el verificador; el ataque vive en <code>:4000/premio.html</code>.</div>
+      <ol class="steps">
+        <li>En <span class="pill v">:3000</span> iniciá sesión y mirá en <b>"Mi cuenta"</b> el <b>Correo actual</b> (con <code>admin</code> arranca en <code>(vacío)</code>). <b>No escribas nada ahí.</b></li>
+        <li>Abrí el sitio atacante: portada <code>http://127.0.0.1:4000</code> → clic en <b>"Abrí el regalo"</b> (o directo <code>:4000/premio.html</code>). La página se autoenvía.</li>
+        <li>Volvé a la tienda y <b>recargá "Mi cuenta" (F5)</b>: el correo pasó solo a <code>atacante@evil.test</code> — sin que vos escribieras nada. El marcador registra el ataque como <span class="no">éxito</span>.</li>
+        <li>Repetí contra <span class="pill s">:3001</span> (necesitás una copia de <code>premio.html</code> con el <code>action</code> apuntando a <code>localhost:3001</code>): el POST recibe <b>403</b> y el correo no cambia.</li>
+      </ol>
+      <div class="note">Si lo tipeás vos en "Mi cuenta", es un cambio legítimo del mismo sitio y el marcador no cuenta: el servidor solo registra el ataque cuando el <code>Origin</code> de la petición es otro sitio (<code>:4000</code>).</div>
+    </div>
+    <table>
+      <tr><th>Ataque</th><th>:3000</th><th>:3001</th></tr>
+      <tr><td><code>premio.html</code> → <code>POST /api/account/email</code></td><td class="no">el correo cambia (200)</td><td class="ok">403, rechazado</td></tr>
+      <tr><td>Cambio desde el frontend legítimo</td><td>funciona</td><td class="ok">funciona (manda <code>X-XSRF-TOKEN</code>)</td></tr>
+    </table>
+    <div class="case"><b>Caso real — ING Direct (2008):</b> investigadores de Princeton lograron, desde una página ajena, abrir cuentas a nombre de un cliente y transferir sus fondos — descrito como el primer CSRF que movía dinero en una institución financiera.</div>
+
+    <!-- ======================= M6 ======================= -->
+    <h2 id="m6"><span class="chip">M6</span>Fuerza bruta — límite de intentos</h2>
+    <p><b>Qué es:</b> sin límite de intentos, un atacante puede probar miles de contraseñas (fuerza bruta, <i>credential stuffing</i>, diccionario). La defensa es limitar los intentos por IP.</p>
+    <div class="theory"><span class="t">Teoría</span>
+      Conviene distinguir los ataques: <b>fuerza bruta</b> prueba todas las combinaciones; por <b>diccionario</b> prueba una lista de contraseñas frecuentes; y el <b>credential stuffing</b> reutiliza usuario+contraseña filtrados de <i>otras</i> brechas, apostando a que la gente repite claves. La contramedida de este módulo es el <b>rate limiting</b>: contar los intentos dentro de una <i>ventana de tiempo</i> y, al superar el umbral, responder <b>HTTP 429 (Too Many Requests)</b> con la cabecera <code>Retry-After</code>. Técnicas habituales son el algoritmo de <i>token bucket</i> o <i>ventana deslizante</i>, y la clave de conteo suele ser la IP (ojo con <code>X-Forwarded-For</code> detrás de un proxy) o la cuenta. Se complementa con <b>backoff</b> incremental, <b>bloqueo temporal</b> de la cuenta, <b>CAPTCHA</b> tras varios fallos, <b>MFA</b> (segundo factor) y alertas de inicio de sesión sospechoso. El objetivo no es impedir un intento, sino hacer el ataque masivo <b>inviable en tiempo</b>.
+    </div>
+    <div class="lbl good">Defensa (versión segura :3001)</div>
+    <pre class="after"><code>// 5 intentos por IP · ventana de 60 s · al superar → HTTP 429 (+ cabecera Retry-After)</code></pre>
+    <div class="try">
+      <h4>Probalo</h4>
+      <ol class="steps">
+        <li>En <span class="pill s">:3001</span>, intentá iniciar sesión con <code>maria</code> y una contraseña incorrecta <b>6 veces seguidas</b> (rápido, dentro de 60 s).</li>
+        <li>Los primeros 5 responden <b>401</b> (credenciales malas); el <b>6.º</b> responde <b>429 Too Many Requests</b>.</li>
+        <li>En <span class="pill v">:3000</span> los 6 intentos responden 401 — nunca se bloquea.</li>
+      </ol>
+      <p>También podés usar <code>requests/06-rate-limit.http</code> o un script de PowerShell que envíe 6 <code>POST</code> a <code>/api/login</code>.</p>
+    </div>
+    <table>
+      <tr><th>6 intentos fallidos</th><th>:3000</th><th>:3001</th></tr>
+      <tr><td>Respuestas</td><td class="no">401 ×6 (sin bloqueo)</td><td class="ok">401 ×5, luego <b>429</b></td></tr>
+    </table>
+
+    <!-- ======================= M7 ======================= -->
+    <h2 id="m7"><span class="chip">M7</span>IDOR — leer los datos de otro usuario <span style="font-size:13px;color:var(--muted);font-weight:400">(módulo extra / opcional)</span></h2>
+    <p><b>Qué es:</b> <code>GET /api/users/{id}</code> solo comprueba que haya sesión, no que el recurso sea tuyo. Estar <b>autenticado</b> no es lo mismo que estar <b>autorizado</b> a ver ese objeto. Cambiando el número de la URL, <code>maria</code> lee los datos de <code>admin</code> (contraseña incluida).</p>
+    <div class="theory"><span class="t">Teoría</span>
+      IDOR (<i>Insecure Direct Object Reference</i>) es un caso de <b>Broken Access Control</b>, la categoría <b>A01</b> y número uno del OWASP Top 10. La distinción clave es <b>autenticación</b> (¿quién sos?) frente a <b>autorización</b> (¿podés hacer/ver <i>esto</i>?): aquí el sistema verifica la primera pero olvida la segunda. Se da cuando la app expone una <b>referencia directa</b> a un objeto — un id numérico, un nombre de archivo — y confía en ella sin comprobar que pertenece a quien la pide; basta <b>enumerar</b> ids para acceder a datos ajenos. Dos defensas: (1) comprobar la propiedad <b>en el servidor</b> en cada acceso (<code>recurso.dueño == usuarioActual</code>), nunca ocultar el control solo en la interfaz; y (2) como refuerzo, usar identificadores <b>no predecibles</b> (UUID) para que no se puedan adivinar. El principio general es el de <b>denegar por defecto</b> y conceder lo mínimo.
+    </div>
+    <div class="lbl good">Defensa (versión segura :3001)</div>
+    <pre class="after"><code>if (!id.equals(actual.id())) return 403;  // el recurso debe pertenecer a quien lo pide
+// y responde un DTO sin contraseña</code></pre>
+    <div class="try">
+      <h4>Probalo</h4>
+      <ol class="steps">
+        <li>En <span class="pill v">:3000</span> iniciá sesión como <code>maria / sunshine</code>.</li>
+        <li>En la barra de direcciones (misma pestaña, para llevar la cookie) abrí <code>http://localhost:3000/api/users/1</code> (el id de admin).</li>
+        <li>Ves los datos de <b>admin</b>, con su contraseña. En <span class="pill s">:3001</span> la misma URL responde <b>403</b>. También podés usar <code>requests/07-idor.http</code>.</li>
+      </ol>
+    </div>
+    <table>
+      <tr><th>Prueba</th><th>:3000</th><th>:3001</th></tr>
+      <tr><td><code>maria</code> pide <code>/api/users/1</code> (admin)</td><td class="no">200 con los datos de admin</td><td class="ok">403</td></tr>
+      <tr><td>Sin sesión</td><td>401</td><td>401</td></tr>
+    </table>
+
+    <!-- ======================= Defensa ======================= -->
+    <h2 id="defensa"><span class="chip">3</span>Defensa en profundidad</h2>
+    <p>Ningún control alcanza solo. Cada módulo aportó una capa; juntas forman la defensa en profundidad: <b>si una falla, otra contiene el daño</b>.</p>
+    <table>
+      <tr><th>Capa</th><th>Controles</th></tr>
+      <tr><td>Entrada</td><td>consultas parametrizadas (M1), validación</td></tr>
+      <tr><td>Salida</td><td>sanitización + <code>textContent</code>, CSP (M3 / M4)</td></tr>
+      <tr><td>Identidad</td><td>BCrypt (M2), límite de intentos (M6)</td></tr>
+      <tr><td>Entre sitios</td><td>CORS lista blanca, token CSRF, <code>SameSite=Lax</code> (M4 / M5)</td></tr>
+    </table>
+    <div class="case"><b>Caso real — Equifax (2017):</b> <b>147 M</b> de personas expuestas por una librería (Apache Struts, CVE-2017-5638) con parche ya publicado desde marzo y sin aplicar. Hasta US$ 700 M en acuerdos. Un parche pendiente puede costar cientos de millones.</div>
+    <div class="note"><b>Herramientas:</b> DevTools y REST Client (<code>.http</code>) para la demo · consola H2 para el CTF · <b>OWASP ZAP</b> para pruebas activas/pasivas · <b>OWASP Dependency-Check</b> para detectar librerías con CVE conocidos.</div>
+
+    <!-- ======================= CTF ======================= -->
+    <h2 id="ctf">Reto CTF — la tabla escondida</h2>
+    <p>Objetivo: leer la bandera de una tabla que <b>ninguna pantalla</b> muestra, usando la inyección del buscador (M1) en <span class="pill v">:3000</span>. Pista: la base guarda un catálogo de sus propias tablas, <code>INFORMATION_SCHEMA</code>.</p>
+    <ol class="steps">
+      <li>Una comilla sola rompe la consulta y el error revela: <code>SELECT id, name, description, price FROM products ...</code> → son <b>4 columnas</b>.</li>
+      <li>Listá las tablas:<br><code>' UNION SELECT 1, TABLE_NAME, '', 0 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='PUBLIC' --</code><br>Aparece <code>SECRETO_CTF</code> entre los "productos".</li>
+      <li>Leé la bandera:<br><code>' UNION SELECT id, flag, '', 0 FROM secreto_ctf --</code></li>
+      <li>Bandera: <code>FLAG{union_select_information_schema}</code></li>
+    </ol>
+    <div class="note">En <span class="pill s">:3001</span> la búsqueda usa una consulta parametrizada: el payload se busca como texto literal y devuelve <code>[]</code>. La corrección es la misma de M1.</div>
+
+    <!-- ======================= Juice Shop ======================= -->
+    <h2 id="juiceshop">Practicá más · OWASP Juice Shop</h2>
+    <p>Cuando termines VulnShop, el siguiente paso natural para seguir practicando es <b>OWASP Juice Shop</b>, el laboratorio de seguridad web más conocido del mundo. Podés probarlo en línea sin instalar nada: <a href="https://preview.owasp-juice.shop/#/" target="_blank" rel="noopener"><code>preview.owasp-juice.shop</code></a></p>
+
+    <h4>¿Qué es?</h4>
+    <p>Es una <b>aplicación web intencionalmente insegura</b>: una tienda en línea (de jugos) construida a propósito con decenas de vulnerabilidades reales para que las encuentres y explotes en un entorno legal y seguro. Está hecha con tecnología moderna (<b>Node.js / Express</b> en el backend y <b>Angular</b> en el frontend), lo que la hace mucho más realista que los laboratorios clásicos. Cubre <b>todo el OWASP Top 10</b> y muchas otras fallas del mundo real (más de <b>100 retos</b> de dificultad creciente).</p>
+
+    <h4>¿Quién la creó?</h4>
+    <p>La creó y lidera <b>Björn Kimminich</b>. Es un <b>proyecto insignia (Flagship) de OWASP</b>, mantenido por voluntarios (con Jannik Hollenbach y Timo Pagel en el equipo central) y de código abierto bajo licencia MIT.</p>
+
+    <h4>¿Cuál es el objetivo?</h4>
+    <p>Aprender seguridad <b>atacando</b>. La idea es que, para entender cómo se defiende una aplicación, primero veas cómo se rompe — en un entorno donde hacerlo es legal y está diseñado para eso. Es <b>gamificado</b>: cada vulnerabilidad que explotás es un "reto" que suma puntos. Hay un <b>Score Board</b> (tablero de puntajes) escondido en la propia app — encontrarlo es, de hecho, el primer reto — que lleva la cuenta de lo que vas resolviendo, por categoría y dificultad (de 1 a 6 estrellas).</p>
+
+    <h4>¿Qué podés hacer ahí?</h4>
+    <ul>
+      <li>Resolver retos de las mismas categorías del taller: <b>inyección SQL</b>, <b>XSS</b>, <b>control de acceso roto / IDOR</b>, autenticación débil, exposición de datos sensibles, mala configuración de seguridad y más.</li>
+      <li>Jugar por tu cuenta siguiendo el <b>Score Board</b>, o montarlo como un <b>CTF</b> para competir en grupo.</li>
+      <li>Usar el <b>modo tutorial / hacking instructor</b> integrado, que te va guiando en los primeros retos.</li>
+      <li>Instalarlo localmente (Docker o npm) si querés tu propia copia; la versión <code>preview.owasp-juice.shop</code> es una demo pública compartida — no metas datos reales ni la uses como si fuera tuya en exclusiva.</li>
+    </ul>
+
+    <h4>¿Dónde conseguir las respuestas (soluciones)?</h4>
+    <p>Las soluciones están en el libro oficial y gratuito <b>«Pwning OWASP Juice Shop»</b>, escrito por el mismo Björn Kimminich. Su segunda parte describe cada vulnerabilidad con <b>pistas y una guía</b> para encontrarla y explotarla (más que un paso a paso exacto, para que pienses). Se lee gratis en línea o se descarga en PDF/Kindle/ePub:</p>
+    <table>
+      <tr><th>Recurso</th><th>Enlace</th></tr>
+      <tr><td>Libro de soluciones (en línea)</td><td><a href="https://pwning.owasp-juice.shop/" target="_blank" rel="noopener"><code>pwning.owasp-juice.shop</code></a></td></tr>
+      <tr><td>Demo para practicar</td><td><a href="https://preview.owasp-juice.shop/#/" target="_blank" rel="noopener"><code>preview.owasp-juice.shop</code></a></td></tr>
+      <tr><td>Página oficial del proyecto</td><td><a href="https://owasp.org/www-project-juice-shop/" target="_blank" rel="noopener"><code>owasp.org/www-project-juice-shop</code></a></td></tr>
+      <tr><td>Código fuente (GitHub)</td><td><a href="https://github.com/juice-shop/juice-shop" target="_blank" rel="noopener"><code>github.com/juice-shop/juice-shop</code></a></td></tr>
+    </table>
+    <div class="note warn"><b>Ética primero.</b> Las técnicas de Juice Shop (como las de este taller) son para practicar en el propio laboratorio. Usarlas contra sistemas ajenos sin autorización es delito. Pruebas autorizadas, entornos controlados, uso ético del conocimiento.</div>
+
+    <!-- ======================= Resumen ======================= -->
+    <h2 id="resumen">En resumen</h2>
+    <ol>
+      <li><b>Inyección</b> = el intérprete confunde dato con código (A05:2025): parametrizá y validá tipos.</li>
+      <li><b>XSS:</b> <code>textContent</code>, sanitizar al guardar, CSP y cookie <code>HttpOnly</code>.</li>
+      <li><b>CORS</b> deja leer datos; <b>CSRF</b> deja ejecutar acciones con la cookie de la víctima.</li>
+      <li>Se defiende <b>por capas:</b> lista blanca, cabeceras, token CSRF, <code>SameSite=Lax</code> y dependencias al día.</li>
+    </ol>
+    <div class="try">
+      <h4>Tu turno</h4>
+      <p>Abrí DevTools → <b>Application → Cookies</b>. ¿Qué valor tiene <code>SameSite</code> en <code>:3000</code>? ¿Y en <code>:3001</code>? (En <code>:3000</code>, <code>sid_vuln</code> es <code>None</code>; en <code>:3001</code>, <code>sid_safe</code> es <code>Lax</code>. Esa es la diferencia que explica por qué el CSRF funciona en una y falla en la otra.)</p>
+    </div>
+
+    <footer>
+      Taller OWASP Top 10:2025 · VulnShop · Material de estudio y laboratorio.
+      <br>Taller impartido por <b>José Andrés Ramírez J.</b> · <b>Eilyn Rivera</b> · <b>Eduardo Solís</b>.
+      <br>Proyecto base: <a href="https://github.com/eilynrivera/TallerDSIV" target="_blank" rel="noopener">github.com/eilynrivera/TallerDSIV</a>
+      <br>Trata siempre la entrada del usuario como dato, nunca como código, y no confíes en una sola defensa.
+    </footer>
+  </main>
+</div>
+
+<!-- Selection toolbar -->
+<div class="seltool" id="seltool">
+  <button class="mk" id="btnMark">Subrayar</button>
+  <button class="dd" id="btnDuda">+ Duda</button>
+</div>
+
+<!-- Dudas drawer -->
+<div class="overlay" id="overlay"></div>
+<aside class="drawer" id="drawer" aria-label="Panel de dudas">
+  <header>
+    <h3>Mis dudas</h3>
+    <button class="x" id="drawerClose" aria-label="Cerrar">×</button>
+  </header>
+  <div class="tools">
+    <button class="btn primary" id="downloadMd">⬇ Descargar .md</button>
+    <button class="btn" id="clearAll">Vaciar todo</button>
+  </div>
+  <div class="list" id="dudasList"></div>
+</aside>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  var LS_HL = "taller-seguridad-hl-v1";
+  var LS_DD = "taller-seguridad-dudas-v1";
+  var LS_THEME = "taller-seguridad-theme";
+  var roots = [];        // highlightable elements, indexed
+  var highlights = [];   // {id, rootIdx, start, end, text}
+  var dudas = [];        // {id, hlId, text, section, note, ts}
+
+  // ---------- utils ----------
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+  function load(key, def){ try{ var v = localStorage.getItem(key); return v ? JSON.parse(v) : def; }catch(e){ return def; } }
+  function save(){ try{ localStorage.setItem(LS_HL, JSON.stringify(highlights)); localStorage.setItem(LS_DD, JSON.stringify(dudas)); }catch(e){} }
+  function esc(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  var toastT;
+  function toast(msg){ var t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(function(){t.classList.remove("show");},1800); }
+
+  // ---------- highlightable roots ----------
+  function indexRoots(){
+    var sel = "#content p, #content li, #content td, #content th, #content h2, #content h3, #content h4, #content blockquote, #content pre";
+    roots = Array.prototype.slice.call(document.querySelectorAll(sel));
+    roots.forEach(function(el,i){ el.setAttribute("data-hl", i); });
+  }
+  function rootOf(node){
+    var el = node.nodeType === 1 ? node : node.parentNode;
+    while(el && el !== document.body){
+      if(el.hasAttribute && el.hasAttribute("data-hl")) return el;
+      el = el.parentNode;
+    }
+    return null;
+  }
+  function offsetOf(root, node, nodeOffset){
+    var r = document.createRange();
+    r.selectNodeContents(root);
+    r.setEnd(node, nodeOffset);
+    return r.toString().length;
+  }
+  function sectionTitleFor(root){
+    var el = root;
+    while(el){
+      var p = el.previousElementSibling;
+      while(p){
+        if(p.tagName === "H2"){
+          var full = p.textContent.replace(/\s+/g," ").trim();
+          var chip = p.querySelector(".chip");
+          if(chip){ var c = chip.textContent.trim(); full = c + " · " + full.slice(c.length).trim(); }
+          return full;
+        }
+        p = p.previousElementSibling;
+      }
+      el = el.parentNode;
+      if(el && el.id === "content") break;
+    }
+    return "General";
+  }
+
+  // wrap [start,end] within root in <mark data-uid>
+  function wrapRange(root, start, end, markUid){
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    var idx = 0, node, pieces = [];
+    while((node = walker.nextNode())){
+      var len = node.nodeValue.length, nStart = idx, nEnd = idx + len;
+      if(nEnd > start && nStart < end){
+        pieces.push({ node: node, s: Math.max(0, start - nStart), e: Math.min(len, end - nStart) });
+      }
+      idx = nEnd;
+    }
+    pieces.reverse().forEach(function(p){
+      if(p.e <= p.s) return;
+      try{
+        var rng = document.createRange();
+        rng.setStart(p.node, p.s); rng.setEnd(p.node, p.e);
+        var m = document.createElement("mark");
+        m.className = "hl"; m.setAttribute("data-uid", markUid);
+        rng.surroundContents(m);
+      }catch(err){}
+    });
+  }
+  function unwrap(markUid){
+    var marks = document.querySelectorAll('mark.hl[data-uid="'+markUid+'"]');
+    Array.prototype.forEach.call(marks, function(m){
+      var parent = m.parentNode;
+      while(m.firstChild) parent.insertBefore(m.firstChild, m);
+      parent.removeChild(m);
+      parent.normalize();
+    });
+  }
+
+  function applyAllHighlights(){
+    // group by root, apply from highest start to lowest so offsets stay valid
+    var byRoot = {};
+    highlights.forEach(function(h){ (byRoot[h.rootIdx] = byRoot[h.rootIdx] || []).push(h); });
+    Object.keys(byRoot).forEach(function(k){
+      var root = roots[k]; if(!root) return;
+      byRoot[k].sort(function(a,b){ return b.start - a.start; }).forEach(function(h){
+        wrapRange(root, h.start, h.end, h.id);
+      });
+    });
+  }
+
+  // ---------- selection toolbar ----------
+  var seltool = document.getElementById("seltool");
+  var pending = null;
+  function hideTool(){ seltool.style.display = "none"; pending = null; }
+  function onSelect(){
+    var sel = window.getSelection();
+    if(!sel || sel.isCollapsed || sel.rangeCount === 0){ hideTool(); return; }
+    var range = sel.getRangeAt(0);
+    var text = sel.toString().replace(/\s+/g," ").trim();
+    if(text.length < 2){ hideTool(); return; }
+    var r1 = rootOf(range.startContainer), r2 = rootOf(range.endContainer);
+    if(!r1 || r1 !== r2){ hideTool(); return; } // keep it within a single block
+    var start = offsetOf(r1, range.startContainer, range.startOffset);
+    var end = offsetOf(r1, range.endContainer, range.endOffset);
+    if(end <= start){ hideTool(); return; }
+    pending = { rootIdx: parseInt(r1.getAttribute("data-hl"),10), start: start, end: end, text: text, section: sectionTitleFor(r1) };
+    var rect = range.getBoundingClientRect();
+    seltool.style.display = "flex";
+    var tw = seltool.offsetWidth || 140, th = seltool.offsetHeight || 34;
+    var left = window.scrollX + rect.left + rect.width/2 - tw/2;
+    left = Math.max(8, Math.min(left, window.scrollX + document.documentElement.clientWidth - tw - 8));
+    var top = window.scrollY + rect.top - th - 8;
+    if(top < window.scrollY + 4) top = window.scrollY + rect.bottom + 8;
+    seltool.style.left = left + "px";
+    seltool.style.top = top + "px";
+  }
+  document.addEventListener("mouseup", function(e){
+    if(seltool.contains(e.target)) return;
+    setTimeout(onSelect, 1);
+  });
+  document.addEventListener("scroll", hideTool, true);
+
+  function commitHighlight(){
+    if(!pending) return null;
+    var h = { id: uid(), rootIdx: pending.rootIdx, start: pending.start, end: pending.end, text: pending.text };
+    highlights.push(h);
+    wrapRange(roots[h.rootIdx], h.start, h.end, h.id);
+    return h;
+  }
+  document.getElementById("btnMark").addEventListener("click", function(){
+    var p = pending; var h = commitHighlight();
+    if(h){ save(); toast("Subrayado guardado"); }
+    window.getSelection().removeAllRanges(); hideTool(); pending = p && null;
+  });
+  document.getElementById("btnDuda").addEventListener("click", function(){
+    var section = pending ? pending.section : "General";
+    var h = commitHighlight();
+    if(h){
+      dudas.push({ id: uid(), hlId: h.id, text: h.text, section: section, note: "", ts: Date.now() });
+      save(); renderDudas(); openDrawer();
+      toast("Agregado a Mis dudas");
+    }
+    window.getSelection().removeAllRanges(); hideTool();
+  });
+
+  // click a highlight to remove it
+  document.getElementById("content").addEventListener("click", function(e){
+    var m = e.target.closest ? e.target.closest("mark.hl") : null;
+    if(!m) return;
+    var id = m.getAttribute("data-uid");
+    if(confirm("¿Quitar este subrayado? (si tiene una duda asociada, también se elimina)")){
+      removeHighlight(id);
+    }
+  });
+  function removeHighlight(id){
+    unwrap(id);
+    highlights = highlights.filter(function(h){ return h.id !== id; });
+    dudas = dudas.filter(function(d){ return d.hlId !== id; });
+    save(); renderDudas();
+  }
+
+  // ---------- dudas panel ----------
+  var drawer = document.getElementById("drawer");
+  var overlay = document.getElementById("overlay");
+  function openDrawer(){ drawer.classList.add("open"); overlay.classList.add("open"); }
+  function closeDrawer(){ drawer.classList.remove("open"); overlay.classList.remove("open"); }
+  document.getElementById("dudasBtn").addEventListener("click", function(){ drawer.classList.contains("open") ? closeDrawer() : openDrawer(); });
+  document.getElementById("drawerClose").addEventListener("click", closeDrawer);
+  overlay.addEventListener("click", closeDrawer);
+
+  function renderDudas(){
+    var list = document.getElementById("dudasList");
+    document.getElementById("dudasCount").textContent = dudas.length;
+    if(dudas.length === 0){
+      list.innerHTML = '<div class="empty">Todavía no tenés dudas.<br>Seleccioná texto de la guía y pulsá <b>+ Duda</b>.</div>';
+      return;
+    }
+    list.innerHTML = "";
+    dudas.slice().sort(function(a,b){ return a.ts - b.ts; }).forEach(function(d, i){
+      var el = document.createElement("div");
+      el.className = "duda";
+      el.innerHTML =
+        '<div class="sec">'+ (i+1) +' · '+ esc(d.section) +'</div>' +
+        '<div class="q">'+ esc(d.text) +'</div>' +
+        '<textarea placeholder="Escribí tu duda o nota…">'+ esc(d.note) +'</textarea>' +
+        '<div class="row">' +
+          '<button class="go">Ir al texto</button>' +
+          '<button class="del">Eliminar</button>' +
+        '</div>';
+      var ta = el.querySelector("textarea");
+      ta.addEventListener("input", function(){ d.note = ta.value; save(); });
+      el.querySelector(".go").addEventListener("click", function(){
+        var m = document.querySelector('mark.hl[data-uid="'+d.hlId+'"]');
+        if(m){ closeDrawer(); m.scrollIntoView({behavior:"smooth", block:"center"});
+          m.style.transition="background .3s"; var o=m.style.background; m.style.background="var(--hl-border)";
+          setTimeout(function(){ m.style.background=o; }, 700); }
+        else { toast("El subrayado de esta duda ya no está"); }
+      });
+      el.querySelector(".del").addEventListener("click", function(){
+        if(d.hlId) removeHighlight(d.hlId);
+        else { dudas = dudas.filter(function(x){ return x.id !== d.id; }); save(); renderDudas(); }
+      });
+      list.appendChild(el);
+    });
+  }
+
+  // ---------- download .md ----------
+  function buildMd(){
+    var now = new Date();
+    var lines = ["# Dudas del taller — Seguridad web OWASP", "",
+      "_Generado: " + now.toLocaleString() + "_", "",
+      "Total de dudas: " + dudas.length, "", "---", ""];
+    dudas.slice().sort(function(a,b){ return a.ts - b.ts; }).forEach(function(d, i){
+      lines.push("## " + (i+1) + ". " + d.section);
+      lines.push("");
+      lines.push("> " + d.text.replace(/\n/g, " "));
+      lines.push("");
+      lines.push(d.note && d.note.trim() ? d.note.trim() : "_(sin nota)_");
+      lines.push("");
+    });
+    return lines.join("\n");
+  }
+  document.getElementById("downloadMd").addEventListener("click", function(){
+    if(dudas.length === 0){ toast("No hay dudas para descargar"); return; }
+    var blob = new Blob([buildMd()], { type: "text/markdown;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "dudas-taller-seguridad.md";
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 100);
+    toast("Descargando dudas-taller-seguridad.md");
+  });
+  document.getElementById("clearAll").addEventListener("click", function(){
+    if(dudas.length === 0 && highlights.length === 0) return;
+    if(confirm("¿Borrar TODOS los subrayados y dudas?")){
+      highlights.slice().forEach(function(h){ unwrap(h.id); });
+      highlights = []; dudas = []; save(); renderDudas(); toast("Todo borrado");
+    }
+  });
+
+  // ---------- theme ----------
+  function applyTheme(t){ if(t) document.documentElement.setAttribute("data-theme", t); else document.documentElement.removeAttribute("data-theme"); }
+  applyTheme(load(LS_THEME, null));
+  document.getElementById("themeBtn").addEventListener("click", function(){
+    var cur = document.documentElement.getAttribute("data-theme");
+    var isDark = cur ? cur === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    var next = isDark ? "light" : "dark";
+    applyTheme(next); try{ localStorage.setItem(LS_THEME, next); }catch(e){}
+  });
+
+  // ---------- mobile menu + toc active ----------
+  var toc = document.getElementById("toc");
+  document.getElementById("menuBtn").addEventListener("click", function(){ toc.classList.toggle("open"); });
+  Array.prototype.forEach.call(toc.querySelectorAll("a"), function(a){
+    a.addEventListener("click", function(){ if(window.innerWidth <= 880) toc.classList.remove("open"); });
+  });
+  var tocLinks = Array.prototype.slice.call(toc.querySelectorAll("a"));
+  var spy = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){
+        var id = en.target.id;
+        tocLinks.forEach(function(l){ l.classList.toggle("active", l.getAttribute("href") === "#" + id); });
+      }
+    });
+  }, { rootMargin: "-60px 0px -70% 0px" });
+  Array.prototype.forEach.call(document.querySelectorAll("#content h2[id]"), function(h){ spy.observe(h); });
+
+  // ---------- init ----------
+  indexRoots();
+  highlights = load(LS_HL, []);
+  dudas = load(LS_DD, []);
+  // drop stale highlights whose root no longer exists
+  highlights = highlights.filter(function(h){ return roots[h.rootIdx]; });
+  applyAllHighlights();
+  renderDudas();
+})();
+</script>
+</body>
+</html>
